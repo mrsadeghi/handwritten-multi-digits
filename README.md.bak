@@ -34,7 +34,7 @@ class Net(nn.Module):
         ...
 ```
 ### forward function
-This will represent our feed-forward algorithm. it return outputs as prediction for given input x.
+it performs the actual computation, it return outputs as prediction for given input x.
 > Note: we dont call forward function for getting output, we call whole model to perform a forward pass and output prediction
 
 ## train model
