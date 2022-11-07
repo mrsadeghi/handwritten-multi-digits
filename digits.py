@@ -41,20 +41,23 @@ def crop_image(img):
             if y1 == 0:
                 y1 = i
             y2 = i
-    return img[x1:x2,y1:y2]
+    return img,x1,x2,y1,y2
 
 # spliting multi digit image to seprate digits
 def get_digits(imageName):
     #reading image from file
-    image = cv2.imread(imageName, cv2.IMREAD_GRAYSCALE)   
-    plt.imshow(image)
+    originalImage = cv2.imread(imageName, cv2.IMREAD_GRAYSCALE)   
+    # plt.imshow(originalImage)
     # plt.show()
 
     #removing white space from around of image
-    cropedImage = crop_image(image)
-    plt.imshow(cropedImage)
+    c_image, cx1,cx2,cy1,cy2 = crop_image(originalImage)
+    cropedImage = c_image[cx1:cx2,cy1:cy2]
+    # plt.imshow(cropedImage)
     # plt.show()
 
+    # rectangle cordinats for each digit
+    rectangles = []
     x1,x2,y1,y2 = 0,len(cropedImage)-1,-1,0
     acceptableImageLen = 2
     col = 0
@@ -68,23 +71,56 @@ def get_digits(imageName):
             if sum(1 for e in cropedImage[:,i] if e == 0) >= acceptableImageLen and y1 == -1:
                 y1 = i
             if sum(1 for e in cropedImage[:,i] if e == 255) >= len(cropedImage[:,i])-acceptableImageLen and y1 != -1:
-                y2 = i-1
+                y2 = i
                 col = i+1
                 break
         # print('x1:'+str(x1)+' x2:'+str(x2)+' y1:'+str(y1)+' y2:'+str(y2)+' c:'+str(c))
         if(c == len(cropedImage.T)):
             y2 = c-1
         if y2 - y1 > 1:
-            result = cropedImage[x1:x2, y1:y2]
-            result = crop_image(result)
+            result_orgin = cropedImage[x1:x2, y1:y2]
+            # print('x1:'+str(x1)+' x2:'+str(x2)+' y1:'+str(y1)+' y2:'+str(y2))
+            r_image, rx1,rx2,ry1,ry2 = crop_image(result_orgin)
+            # print('rx1:'+str(rx1)+' rx2:'+str(rx2)+' ry1:'+str(ry1)+' ry2:'+str(ry2))
+            result = r_image[rx1:rx2, ry1:ry2]
+            # adding detected digit cordinate
+            rectangles.append([
+                x1+ cx1 + rx1,
+                x2+ cx1 + rx2 - x2,
+                y1+ cy1 - ry1,
+                y2+ cy1 - ry1
+                ])
             result = np.invert(result)
             result = add_padding(result)
             images.append(result)
         y1,y2 = -1,0
+    show_digits_boundry(originalImage, rectangles)
     return images
 
 ##############################################################################
+def show_digits_boundry(img, rectangles):
+    
+    # Draw rectangles
+    # Red rectangle
+    for i in range(len(rectangles)):
+        x1 = rectangles[i][0]#+140
+        x2 = rectangles[i][1]#+140
+        y1 = rectangles[i][2]#+50
+        y2 = rectangles[i][3]#+50
+        # print('('+str(y1)+','+str(x1)+') : ('+str(y2)+','+str(x2)+')')
+        cv2.rectangle(img, (y1, x1), (y2, x2), (0, 255, 0), 2)
+    
+    # Output img with window name as 'image'
+    cv2.imshow('image', img)
 
+    # Maintain output window utill
+    # user presses a key
+    cv2.waitKey(0)
+    
+    # Destroying present windows on screen
+    cv2.destroyAllWindows()
+
+################################################################
 # images = get_digits('webcam/webcammkhsgqtdzv.png')
 # # print('------------------------------------------')
 # for i in range(len(images)):

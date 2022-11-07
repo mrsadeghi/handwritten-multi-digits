@@ -38,8 +38,11 @@ test_loader = torch.utils.data.DataLoader(
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
+        # 1 input (image), outputting 10 features
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        # 10 input (image), outputting 20 features
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        # Dropout is a regularization technique that prevents neural networks from overfitting
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
