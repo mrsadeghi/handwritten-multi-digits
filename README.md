@@ -2,6 +2,8 @@
 
 The purpose of this article is to build a simple convolutional neural network in PyTorch and train it to recognize handwritten digits using the MNIST dataset. Minst dataset contains `70,000` samples in `28*28` pixel handwritten images which we use them to train our model. finally we can test our model by mnist dataset as well as multi-digit handwritten which we take from the webcam.
 
+![Minst Data Set](https://github.com/mrsadeghi/handwritten-multi-digits/blob/main/assets/mnist-dataset.png?raw=true)
+
 ## loading and training the model
 
 it is simple. first of all, we have to load mnist dataset in two categories of **train** and **test** data sets.
@@ -92,6 +94,8 @@ next, we need to separate the digits and pass them separately to our model and g
 > Because these pieces of code are not so intelligent we should be careful and follow some rules for taking images.
 > for example, the pen of our drawing for digits should be in big size and a little bit thick. Also, we have to take only the inside of the paper and the background should only be the white paper.
 
+![Sample of coorect webcam image](https://github.com/mrsadeghi/handwritten-multi-digits/blob/main/assets/correct-webcam-image.png?raw=true)
+
 separating digits from the image and resizing it to fit our model is the most challenging part of this task.
 we should **recognize digits**, **converting it to black&whilte**, **changing background to black** and set some **padding** to make it **squre** are tasks that we should done them.
 
@@ -103,7 +107,8 @@ def get_digits(imageName):
     image = cv2.imread(imageName, cv2.IMREAD_GRAYSCALE)   
     
     #removing white space from around of image
-    cropedImage = crop_image(image)
+    c_image, cx1,cx2,cy1,cy2 = crop_image(originalImage)
+    cropedImage = c_image[cx1:cx2,cy1:cy2]
     
     while c < len(cropedImage.T) :
         for i in range(col, len(cropedImage.T)):
@@ -114,7 +119,11 @@ def get_digits(imageName):
 		result = cropedImage[x1:x2, y1:y2]
 		
 		#croptin white space again
-		result = crop_image(result)
+		r_image, rx1,rx2,ry1,ry2 = crop_image(result_orgin)
+		result = r_image[rx1:rx2, ry1:ry2]
+		
+		# adding detected digit cordinate
+		rectangles.append([ DIGIT_CORDINATES])
 		
 		#changing background to black
 		result = np.invert(result)
@@ -123,9 +132,14 @@ def get_digits(imageName):
 		result = add_padding(result)
 		
 		images.append(result)
-        
+    
+	show_digits_boundry(originalImage, rectangles)    
     return images
 ```
+
+After getting all digits, because we have their coordinates, we can show each image boundary on the original image size. for that, we use `cv2.rectangle(img, (y1, x1), (y2, x2), (0, 255, 0), 2)` to draw a rectangle on every digit coordinate.
+![image boundry](https://github.com/mrsadeghi/handwritten-multi-digits/blob/main/assets/digit_boundry_on_original_image.PNG?raw=true)
+
 first, we pass the image location to `get_digits`, inside this function we remove all white space from around the image.
 then by recognizing black and white pixels we can recognize each digit. we have to add padding and make it square because we have to resize them to 28*28, so we don't want to re-shape the image!
 
@@ -142,3 +156,19 @@ def predictSingleImage(image, orginalValue):
     return pred.item()
 ```
 
+## main.py
+we separated codes into three modules `webcam.py`, `digits.py`, and `mnistNet.py`.
+for running and seeing the result of codes we need to call this module. for this purpose, we should add the new python file and call all of them. so, we created the `main.py` file and first read the image from the webcam, passed the location of the image to the separating image function, and then loaded and predicted the separate images.
+
+```
+from webcam import get_image_from_webcam
+from digits import get_digits
+from mnistNet import predict_digits,load_trained_net, do_train
+
+# do_train()
+load_trained_net()
+imageName = get_image_from_webcam()
+images = get_digits(imageName)
+val = predict_digits(images)
+print(*val)
+```
