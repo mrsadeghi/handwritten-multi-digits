@@ -35,7 +35,6 @@ def crop_image(img):
             if x1 == 0:
                 x1 = i
             x2 = i
-    # print(str(x1)+','+str(x2))        
     for i in range(len(img.T)):
         if sum(1 for e in img[:,i] if e == 255)!= len(img[:,i]) :
             if y1 == 0:
@@ -67,21 +66,18 @@ def get_digits(imageName):
         # finding starting anding column of each image
         for i in range(col, len(cropedImage.T)):
             c = c+1
-            # print(sum(1 for e in cropedImage[:,i] if e == 0))
+            
             if sum(1 for e in cropedImage[:,i] if e == 0) >= acceptableImageLen and y1 == -1:
                 y1 = i
             if sum(1 for e in cropedImage[:,i] if e == 255) >= len(cropedImage[:,i])-acceptableImageLen and y1 != -1:
                 y2 = i
                 col = i+1
                 break
-        # print('x1:'+str(x1)+' x2:'+str(x2)+' y1:'+str(y1)+' y2:'+str(y2)+' c:'+str(c))
         if(c == len(cropedImage.T)):
             y2 = c-1
         if y2 - y1 > 1:
             result_orgin = cropedImage[x1:x2, y1:y2]
-            # print('x1:'+str(x1)+' x2:'+str(x2)+' y1:'+str(y1)+' y2:'+str(y2))
             r_image, rx1,rx2,ry1,ry2 = crop_image(result_orgin)
-            # print('rx1:'+str(rx1)+' rx2:'+str(rx2)+' ry1:'+str(ry1)+' ry2:'+str(ry2))
             result = r_image[rx1:rx2, ry1:ry2]
             # adding detected digit cordinate
             rectangles.append([
@@ -103,18 +99,17 @@ def show_digits_boundry(img, rectangles):
     # Draw rectangles
     # Red rectangle
     for i in range(len(rectangles)):
-        x1 = rectangles[i][0]#+140
-        x2 = rectangles[i][1]#+140
-        y1 = rectangles[i][2]#+50
-        y2 = rectangles[i][3]#+50
+        x1 = rectangles[i][0]
+        x2 = rectangles[i][1]
+        y1 = rectangles[i][2]
+        y2 = rectangles[i][3]
         # print('('+str(y1)+','+str(x1)+') : ('+str(y2)+','+str(x2)+')')
         cv2.rectangle(img, (y1, x1), (y2, x2), (0, 255, 0), 2)
     
     # Output img with window name as 'image'
     cv2.imshow('image', img)
 
-    # Maintain output window utill
-    # user presses a key
+    # Maintain output window untill user presses a key
     cv2.waitKey(0)
     
     # Destroying present windows on screen

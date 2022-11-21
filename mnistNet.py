@@ -13,8 +13,14 @@ n_epochs = 5
 batch_size_train = 64
 batch_size_test = 1000
 learning_rate = 0.01
+# momentum is designed to accelerate learning
 momentum = 0.5
-log_interval = 10
+
+# When an image is transformed into a PyTorch tensor, the pixel values are scaled between 0.0 and 1.0. 
+# In PyTorch, this transformation can be done using torchvision.transforms.ToTensor().
+
+# Normalization helps get data within a range and reduces the skewness which helps learn faster and better.
+# Normalization in PyTorch is done using torchvision.transforms.Normalize()
 
 train_loader = torch.utils.data.DataLoader(
   torchvision.datasets.MNIST('/files/', train=True, download=True,
@@ -36,27 +42,38 @@ test_loader = torch.utils.data.DataLoader(
 
 ####################### NET CALSS #####################################################
 class Net(nn.Module):
+
+# 1 input (image), outputting 10 features
+# 10 input (image), outputting 20 features
+# Dropout is a regularization technique that prevents neural networks from overfitting
+
     def __init__(self):
         super(Net, self).__init__()
-        # 1 input (image), outputting 10 features
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        # 10 input (image), outputting 20 features
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        # Dropout is a regularization technique that prevents neural networks from overfitting
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
+        self.fc1 = nn.Linear(20 * 4 * 4, 50)
         self.fc2 = nn.Linear(50, 10)
 
+    # In the case of a Convolutional Neural Network, the output of the convolution will be passed through the activation function. (ReLU)
+    # dropout remove half of neurons
+    # we use the softmax activation function for our last layer model
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        # input size is [64, 1, 28, 28]
+        mp2 = F.max_pool2d(self.conv1(x), kernel_size=2)
+        # print(f"maxpool 2: {mp2.size()}")
+        x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=2))
+        # print(f"ReLU of conv1: {x.size()}")
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
+        # print(f"ReLU of conv2: {x.size()}")
+        x = x.view(-1, 20 * 4 * 4)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x)
 ###################### INIT ############################
 network = Net()
+# optimizer implements a step() method, that updates the parameters. it will be used in train method
 optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
 
 continued_network = Net()
@@ -76,20 +93,21 @@ def train(epoch):
   #sets the mode to train
   network.train()
   for batch_idx, (data, target) in enumerate(train_loader):
+    # for every mini-batch during the training phase, we typically want to explicitly set the gradients to zero before starting to do backpropragation 
+    # because PyTorch accumulates the gradients on subsequent backward passes. 
     optimizer.zero_grad()
+
     #set input and get output
     output = network(data)
+
     #calc loss
     loss = F.nll_loss(output, target)
     loss.backward()
+
+    # update parameters
     optimizer.step()
-    if batch_idx % log_interval == 0:
-      print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        epoch, batch_idx * len(data), len(train_loader.dataset),
-        100. * batch_idx / len(train_loader), loss.item()))
-      train_losses.append(loss.item())
-      train_counter.append(
-        (batch_idx*64) + ((epoch-1)*len(train_loader.dataset)))
+
+    # A state_dict is simply a Python dictionary object that maps each layer to its parameter tensor.
     torch.save(network.state_dict(), modelPath)
     torch.save(optimizer.state_dict(), optimizerPath)
 
@@ -104,21 +122,19 @@ def load_trained_net():
 ########################## TEST OWN IMAGES ####################
 def predictSingleImage(image, orginalValue):
   continued_network.eval()
+  # The requires_grad argument tells PyTorch that we want to be able to calculate the gradients for those values. 
+  # However, the with torch.no_grad() tells PyTorch to not calculate the gradients
   with torch.no_grad():
-    # examples = enumerate(test_loader)
-    # batch_idx, (example_data, example_targets) = next(examples)
-   
-    single_loaded_img = image#test_loader.dataset.data[0]
+    single_loaded_img = image #test_loader.dataset.data[0]
     single_loaded_img = single_loaded_img[None, None]
     single_loaded_img = torch.from_numpy(single_loaded_img)
     single_loaded_img = single_loaded_img.type('torch.FloatTensor') # instead of DoubleTensor
 
 
     out_predict = continued_network(single_loaded_img)
-    # print(out_predict)
+    # print(f"output : {out_predict}")
     pred = out_predict.max(1, keepdim=True)[1]
     return pred.item()
-    # print(str(pred.item()))
 ###############################################
 def predict_digits(images):
     predict = []
@@ -134,3 +150,4 @@ def predict_digits(images):
         # print('----------------')
     return predict
 
+# do_train()
